@@ -2,9 +2,11 @@
 FROM ubuntu:latest as base
 
 # Base external dependencies.
-RUN apt-get update                                            \
-  && apt-get install --no-install-recommends -y cmake curl    \
-    ca-certificates xz-utils build-essential
+RUN apt-get -y update                                                     \
+  && apt-get install --no-install-recommends -y curl apt-transport-https  \
+    apt-utils software-properties-common bzip2 libc6-dev libgcc-7-dev     \
+    libstdc++-7-dev make binutils-multiarch ca-certificates xz-utils cmake\
+  && apt-get -y autoremove
 
 # Copy our dependencies in
 COPY deps/libdart/. /root/libdart
@@ -28,9 +30,12 @@ WORKDIR <%= @base_path %>
     # Pull down and unpack our compiler image
     RUN curl -sL <%= url_for(name, vid) %> | tar Jxf -
 
-    # Attempt to compile Dart with the current compiler
+    # Speak the words of power to bootstrap our toolchain
+    # and attempt to compile Dart with the current compiler
     ENV CC <%= c_compiler_for(name, vid) %>
     ENV CXX <%= cpp_compiler_for(name, vid) %>
+    ENV CPATH="/usr/include/x86_64-linux-gnu:${CPATH}"
+    ENV LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:${LIBRARY_PATH}"
     RUN mkdir /root/libdart/build                             \
       && cd /root/libdart/build                               \
       && cmake ..                                             \
