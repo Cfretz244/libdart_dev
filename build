@@ -1,2 +1,86 @@
-#!/bin/bash
-docker build .
+#!/usr/bin/env ruby
+
+#----- System Requires -----#
+
+require 'erb'
+require 'uri'
+require 'yaml'
+require 'json'
+
+#----- Globals -----#
+
+DEFAULT_CONFIG = {
+  'compilers' => {
+    'gcc' => [
+      '6.2.0',
+      '6.3.0',
+      '6.4.0',
+      '7.1.0',
+      '7.2.0',
+      '7.3.0',
+      '8.1.0',
+      '8.2.0'
+    ],
+    'clang' => [
+      '6.0.0',
+      '8.0.0'
+    ]
+  },
+  'base_url' => 'https://s3.amazonaws.com/compiler-explorer/opt',
+  'base_path' => '/opt/toolchain'
+}
+
+#----- Helpers -----#
+
+def url_for(name, version)
+  base = @base_url
+  base = base[0...-1] while base[-1] == '/'
+  "#{base}/#{name}-#{version}.tar.xz"
+end
+
+def path_for(name, version)
+  File.join(@base_path, "#{name}-#{version}")
+end
+
+def binary_for(name, cxx)
+  case name.downcase
+  when 'gcc' then cxx ? 'g++' : 'gcc'
+  when 'clang' then cxx ? 'clang++' : 'clang'
+  else raise "Encountered unknown compiler \"#{name}\""
+  end
+end
+
+def c_compiler_for(name, version)
+  File.join(path_for(name, version), 'bin', binary_for(name, false))
+end
+
+def cpp_compiler_for(name, version)
+  File.join(path_for(name, version), 'bin', binary_for(name, true))
+end
+
+def builder_image_for(name, version)
+  "dart_#{name}_#{version.gsub('.', '_')}"
+end
+
+def tester_image_for(name, version)
+  "dart_#{name}_#{version.gsub('.', '_')}_tests"
+end
+
+#----- Setup/Validate -----#
+
+conf = DEFAULT_CONFIG.merge((YAML::load_file(ARGV[0]) rescue Hash.new))
+
+@compilers = conf['compilers']
+raise 'Config file must specify compilers' if !@compilers.is_a?(Hash) || @compilers.empty?
+@base_url = conf['base_url']
+@base_path = conf['base_path']
+
+#----- Application Logic -----#
+
+# Create our Dockerfile
+@images = Array.new
+File.open('Dockerfile', 'w+') { |out| out << ERB.new(File.read('templates/Dockerfile.erb')).result(binding) }
+
+# Build and tag each final image we generated.
+@images.each { |img| system("docker build --target #{img} -t #{img} .") }
+File.open('.dart_build_state', 'w+') { |out| out << @images.to_json }

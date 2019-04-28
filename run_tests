@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+#----- System Requires -----#
+
+require 'json'
+
+#----- Application Logic -----#
+
+# Read in the images that we built
+begin
+  @images = File.open('.dart_build_state', 'r') { |input| JSON.parse(input.read) }
+rescue
+  raise 'Build state corrupt, re-run build script'
+end
+
+# Run each image.
+@images.each do |img|
+  puts "Running image #{img}:"
+  raise "Image #{img} failed tests!" unless system("docker run --rm #{img}")
+end

@@ -12,6 +12,7 @@ compilers:
     - 8.3.0
   clang:
     - 6.0.0
+    - 7.0.0
     - 8.0.0
 base_url: https://s3.amazonaws.com/compiler-explorer/opt
 base_path: /opt/toolchain

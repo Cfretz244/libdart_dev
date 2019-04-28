@@ -4,3 +4,4 @@ Dockerfile
 *.swn
 *.DS_Store
 *.byebug_history
+*.dart_build_state
