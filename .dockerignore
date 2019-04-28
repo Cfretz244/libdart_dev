@@ -1,0 +1,4 @@
+**/.git
+templates/*
+build
+run_tests
