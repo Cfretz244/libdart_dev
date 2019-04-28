@@ -1,0 +1,9 @@
+compilers:
+  gcc:
+    - 7.3.0
+    - 8.1.0
+    - 6.4.0
+  clang:
+    - 6.0.0
+base_url: https://s3.amazonaws.com/compiler-explorer/opt///
+base_path: /opt/compilers

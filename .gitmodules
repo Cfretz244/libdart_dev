@@ -1,0 +1,3 @@
+[submodule "deps/libdart"]
+	path = deps/libdart
+	url = git@git.target.com:/TargetHPC/libdart

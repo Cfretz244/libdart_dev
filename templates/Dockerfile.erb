@@ -1,0 +1,50 @@
+# Base image
+FROM ubuntu:latest as base
+
+# Base external dependencies.
+RUN apt-get update                                            \
+  && apt-get install --no-install-recommends -y cmake curl    \
+    ca-certificates xz-utils build-essential
+
+# Copy our dependencies in
+COPY deps/libdart/. /root/libdart
+COPY deps/gsl.tar.gz /root/gsl.tar.gz
+
+# Unpack
+RUN cd /root                                                  \
+  && tar xzf gsl.tar.gz                                       \
+  && cp -r gsl/include/gsl /usr/local/include                 \
+  && rm -rf gsl
+
+# Final configurations
+RUN mkdir -p <%= @base_path %>
+WORKDIR <%= @base_path %>
+
+# Generate a builder image for each compiler.
+<% @compilers.each_pair do |name, versions| %>
+  <% versions.each do |vid| %>
+    FROM base as <%= builder_image_for(name, vid) %>
+  
+    # Pull down and unpack our compiler image
+    RUN curl -sL <%= url_for(name, vid) %> | tar Jxf -
+
+    # Attempt to compile Dart with the current compiler
+    ENV CC <%= c_compiler_for(name, vid) %>
+    ENV CXX <%= cpp_compiler_for(name, vid) %>
+    RUN mkdir /root/libdart/build                             \
+      && cd /root/libdart/build                               \
+      && cmake ..                                             \
+      && make -j $(nproc)
+  <% end %>
+<% end %>
+
+# Generate a tester image for each compiler.
+<% @compilers.each_pair do |name, versions| %>
+  <% versions.each do |vid| %>
+    FROM ubuntu:latest as <%= tester_image_for(name, vid) %>
+
+    # Copy the build folder over and run the tests.
+    COPY --from=<%= builder_image_for(name, vid) %> /root/libdart/build/. /root/build
+    CMD /root/build/test/unit_tests
+  <% end %>
+<% end %>
