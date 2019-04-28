@@ -3,7 +3,6 @@
 #----- System Requires -----#
 
 require 'erb'
-require 'uri'
 require 'yaml'
 require 'json'
 
@@ -82,5 +81,10 @@ raise 'Config file must specify compilers' if !@compilers.is_a?(Hash) || @compil
 File.open('Dockerfile', 'w+') { |out| out << ERB.new(File.read('templates/Dockerfile.erb')).result(binding) }
 
 # Build and tag each final image we generated.
-@images.each { |img| system("docker build --target #{img} -t #{img} .") }
+@images.each do |img|
+  puts "#### Starting to build image #{img}:"
+  unless system("docker build --target #{img} -t #{img} .")
+    raise "Image #{img} failed to build!"
+  end
+end
 File.open('.dart_build_state', 'w+') { |out| out << @images.to_json }

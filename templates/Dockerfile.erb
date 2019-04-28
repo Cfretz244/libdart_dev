@@ -2,12 +2,11 @@
 FROM ubuntu:latest as base
 
 # Base external dependencies.
-RUN apt-get -y update                                                     \
-  && apt-get install --no-install-recommends -y curl apt-transport-https  \
-    apt-utils software-properties-common bzip2 libc6-dev libgcc-7-dev     \
-    libstdc++-7-dev make binutils-multiarch ca-certificates xz-utils cmake\
+RUN apt-get -y update                                                                         \
+  && apt-get install --no-install-recommends -y curl apt-transport-https                      \
+    apt-utils software-properties-common bzip2 libc6-dev libgcc-7-dev                         \
+    libstdc++-7-dev make binutils-multiarch ca-certificates xz-utils cmake                    \
   && apt-get -y autoremove
-
 
 # Speak the words of power to bootstrap our toolchain
 ENV CPATH="/usr/include/x86_64-linux-gnu:${CPATH}"
@@ -18,36 +17,36 @@ COPY deps/libdart/. /root/libdart
 COPY deps/gsl.tar.gz /root/gsl.tar.gz
 
 # Unpack
-RUN cd /root                                                  \
-  && tar xzf gsl.tar.gz                                       \
-  && cp -r gsl/include/gsl /usr/local/include                 \
+RUN cd /root                                                                                  \
+  && tar xzf gsl.tar.gz                                                                       \
+  && cp -r gsl/include/gsl /usr/local/include                                                 \
   && rm -rf gsl
 
 # Final configurations
 RUN mkdir -p <%= @base_path %>
 WORKDIR <%= @base_path %>
 
-# Generate a builder image for each compiler.
+# Generate targets for each compiler/version pair
 <% @compilers.each_pair do |name, versions| %>
   <% versions.each do |vid| %>
+    <% # I'm hilarious %>
+    <% current = "#{name} - #{vid}" %>
+
+    # Generate a builder image for <%= current %>
     FROM base as <%= builder_image_for(name, vid) %>
   
     # Pull down and unpack our compiler image
     RUN curl -sL <%= url_for(name, vid) %> | tar Jxf -
 
-    # Attempt to compile Dart with the current compiler
+    # Attempt to compile Dart with <%= current %>
     ENV CC <%= c_compiler_for(name, vid) %>
     ENV CXX <%= cpp_compiler_for(name, vid) %>
-    RUN mkdir /root/libdart/build                             \
-      && cd /root/libdart/build                               \
-      && cmake ..                                             \
+    RUN mkdir /root/libdart/build                                                             \
+      && cd /root/libdart/build                                                               \
+      && cmake ..                                                                             \
       && make -j $(nproc)
-  <% end %>
-<% end %>
 
-# Generate a tester image for each compiler.
-<% @compilers.each_pair do |name, versions| %>
-  <% versions.each do |vid| %>
+    # Generate a tester image for <%= current %>
     FROM ubuntu:latest as <%= tester_image_for(name, vid) %>
 
     # Copy the build folder over and run the tests.

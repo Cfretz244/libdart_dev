@@ -10,11 +10,11 @@ require 'json'
 begin
   @images = File.open('.dart_build_state', 'r') { |input| JSON.parse(input.read) }
 rescue
-  raise 'Build state corrupt, re-run build script'
+  raise 'Build state corrupt or nonexistent, re-run build script'
 end
 
 # Run each image.
 @images.each do |img|
-  puts "Running image #{img}:"
+  puts "#### Running image #{img}:"
   raise "Image #{img} failed tests!" unless system("docker run --rm #{img}")
 end
