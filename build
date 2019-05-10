@@ -19,6 +19,7 @@ DEFAULT_CONFIG = {
       '7.1.0',
       '7.2.0',
       '7.3.0',
+      '7.4.0',
       '8.1.0',
       '8.2.0',
       '8.3.0'
@@ -79,14 +80,26 @@ def tester_image_for(name, version)
   image
 end
 
+# I amuse myself.
+@decl = proc { |b| proc { |n| b.eval("@#{n} = DEFAULT_CONFIG['#{n}']") }  }.call(binding)
+def default(*args)
+  @decl.call(*args)
+end
+
 #----- Setup/Validate -----#
 
-conf = DEFAULT_CONFIG.merge((YAML::load_file(ARGV[0]) rescue Hash.new))
-
-@compilers = conf['compilers']
-raise 'Config file must specify compilers' if !@compilers.is_a?(Hash) || @compilers.empty?
-@base_url = conf['base_url']
-@base_path = conf['base_path']
+# Infer our build targets.
+default 'base_url'
+default 'base_path'
+if ARGV.empty?
+  default 'compilers'
+elsif ARGV.size % 2 == 0
+  # Interpret command line arguments as targets.
+  @compilers = Hash.new { |h, k| h[k] = Array.new }
+  ARGV.each_slice(2) { |cc, vid| @compilers[cc].push(vid) }
+else
+  raise 'Build script must be passed build targets in (compiler|version) pairs'
+end
 
 #----- Application Logic -----#
 
@@ -95,10 +108,12 @@ raise 'Config file must specify compilers' if !@compilers.is_a?(Hash) || @compil
 File.open('Dockerfile', 'w+') { |out| out << ERB.new(File.read('templates/Dockerfile.erb')).result(binding) }
 
 # Build and tag each final image we generated.
-@images.values.reduce(Set.new, :+).each do |img|
+# I continue to amuse myself
+filter = ENV['PARTIAL_BUILD']
+@images.values.map { |s| s.select { |v| !filter || !(v =~ /(dart|tests)/) } }.reduce(Set.new, :+).each do |img|
   puts "#### Starting to build image #{img}:"
   unless system("docker build --target #{img} -t #{img} .")
     raise "Image #{img} failed to build!"
   end
 end
-File.open('.dart_build_state', 'w+') { |out| out << @images['tests'].to_a.to_json }
+File.open('.dart_build_state', 'w+') { |out| out << @images['tests'].to_a.to_json } if !filter

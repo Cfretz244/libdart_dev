@@ -1,3 +1,6 @@
 [submodule "deps/libdart"]
 	path = deps/libdart
-	url = git@github.com:target/libdart.git
+	url = git@github.com:cfretz244/libdart.git
+[submodule "deps/dotfiles"]
+	path = deps/dotfiles
+	url = git@github.com:Cfretz244/dotfiles.git

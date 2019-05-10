@@ -3,8 +3,8 @@ FROM ubuntu:latest as base
 
 # Base external dependencies.
 RUN apt-get -y update                                                                         \
-&& apt-get install --no-install-recommends -y curl libc6-dev libgcc-7-dev                     \
-  libstdc++-7-dev make binutils-multiarch ca-certificates xz-utils cmake                      \
+&& apt-get install --no-install-recommends -y curl libc6-dev libgcc-7-dev git                 \
+  libstdc++-7-dev make binutils-multiarch ca-certificates xz-utils cmake vim                  \
   && apt-get -y autoremove
 
 # Speak the words of power to bootstrap our toolchain
@@ -17,6 +17,8 @@ RUN cd /root                                                                    
   && tar xzf gsl.tar.gz                                                                       \
   && cp -r gsl/include/gsl /usr/local/include                                                 \
   && rm -rf gsl
+COPY deps/dotfiles/. /root/dotfiles
+RUN cd /root/dotfiles && ./install
 
 # Final configurations
 RUN mkdir -p <%= @base_path %>
@@ -36,11 +38,11 @@ WORKDIR <%= @base_path %>
     ENV CC <%= c_compiler_for(name, vid) %>
     ENV CXX <%= cpp_compiler_for(name, vid) %>
 
-    # Generate a builder image for <%= current %>
-    FROM <%= compiler_image_for(name, vid) %> as <%= builder_image_for(name, vid) %>
-
     # Copy libdart in
     COPY deps/libdart/. /root/libdart
+
+    # Generate a builder image for <%= current %>
+    FROM <%= compiler_image_for(name, vid) %> as <%= builder_image_for(name, vid) %>
 
     # Attempt to compile Dart with <%= current %>
     RUN mkdir /root/libdart/build                                                             \

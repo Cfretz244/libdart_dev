@@ -1,0 +1,41 @@
+#!/usr/bin/env ruby
+
+#----- System Requires -----#
+
+require 'optimist'
+
+#----- Setup Logic -----#
+
+# Get CLI options.
+@opts = Optimist.options do
+  opt :daemonize, "Don't attach to the container", default: false, short: '-d'
+  opt :name, 'What to name the container', type: :string, short: '-n'
+  opt :compiler, 'What compiler type to use (gcc|clang)', default: 'gcc', short: '-c'
+  opt :release, 'What compiler version to use', default: '8.1.0', short: '-r'
+  opt :rm, 'Whether the image should be removed upon exit', default: false
+end
+
+#----- Helpers -----#
+
+def image_name
+  "#{@opts[:compiler]}_#{@opts[:release].gsub('.', '_')}"
+end
+
+def container_name
+  proj_name = @opts[:name] || ENV['project_name'] || 'dart_dev'
+  "#{proj_name}_#{image_name}"
+end
+
+#----- Application Logic -----#
+
+# Generate the container image if it doesn't exist.
+system("PARTIAL_BUILD=true ./build #{@opts[:compiler]} #{@opts[:release]}")
+
+# Start the container.
+if @opts[:rm]
+  system("docker run -it --rm --privileged --name #{container_name} #{image_name} bash")
+else
+  `docker create -it --privileged --name #{container_name} #{image_name} bash`
+  `docker start #{container_name}`
+  system("docker attach #{container_name}") unless @opts[:daemonize]
+end
