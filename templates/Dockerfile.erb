@@ -4,7 +4,7 @@ FROM ubuntu:latest as base
 # Base external dependencies.
 RUN apt-get -y update                                                                         \
 && apt-get install --no-install-recommends -y curl libc6-dev libgcc-7-dev git                 \
-  libstdc++-7-dev make binutils-multiarch ca-certificates xz-utils cmake vim                  \
+  libstdc++-7-dev make binutils-multiarch ca-certificates xz-utils cmake vim tmux             \
   && apt-get -y autoremove
 
 # Speak the words of power to bootstrap our toolchain
