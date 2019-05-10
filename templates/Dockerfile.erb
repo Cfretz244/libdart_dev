@@ -10,6 +10,7 @@ RUN apt-get -y update                                                           
 # Speak the words of power to bootstrap our toolchain
 ENV CPATH="/usr/include/x86_64-linux-gnu:${CPATH}"
 ENV LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:${LIBRARY_PATH}"
+ENV TERM=xterm-256color
 
 # Copy our dependencies in and unpack
 COPY deps/gsl.tar.gz /root/gsl.tar.gz
