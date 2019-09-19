@@ -22,13 +22,17 @@ def container_name
   "#{proj_name}_msvc_2019"
 end
 
+BASE_DIR = File.expand_path(File.dirname(__FILE__))
+
 #----- Application Logic -----#
 
 # Start the container.
+flags = "-it --privileged -v=#{File.join(BASE_DIR, 'deps', 'libdart', 'include')}:/usr/local/include"
+flags += " --name #{container_name}"
 if @opts[:rm]
-  system("docker run -it --rm --privileged --name #{container_name} #{image_name} bash")
+  system("docker run #{flags} --rm #{image_name} bash")
 else
-  `docker create -it --privileged --name #{container_name} #{image_name} bash`
+  `docker create #{flags} #{image_name} bash`
   `docker start #{container_name}`
   system("docker attach #{container_name}") unless @opts[:daemonize]
 end
